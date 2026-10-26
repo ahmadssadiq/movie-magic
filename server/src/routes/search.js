@@ -28,4 +28,31 @@ router.get('/search', async (req, res) => {
   res.json(result);
 });
 
+// GET /api/discover?type=movie&genre=878&year=2014&minRating=8&page=1
+// Browse without a search term, filtered by genre, release year and rating.
+router.get('/discover', async (req, res) => {
+  const type = req.query.type || 'movie';
+  const { genre, year, minRating } = req.query;
+  const page = req.query.page || 1;
+
+  const params = {
+    page,
+    include_adult: false,
+    sort_by: 'popularity.desc',
+    with_genres: genre, // one id, or several separated by commas
+  };
+
+  if (year && type === 'movie') params.primary_release_year = year;
+  if (year && type === 'tv') params.first_air_date_year = year;
+
+  if (minRating) {
+    params['vote_average.gte'] = minRating;
+    // Without a vote floor, a film with two 10/10 votes beats real classics
+    params['vote_count.gte'] = 100;
+  }
+
+  const data = await tmdbGet(`/discover/${type}`, params);
+  res.json(normalizePage(data, type));
+});
+
 export default router;
