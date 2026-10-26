@@ -72,3 +72,16 @@ Browse without a search term.
 Example: `/api/discover?type=movie&genre=878&minRating=8&sort=rating`
 
 Bad input returns `400` with `{ "error": "..." }`.
+
+## List endpoints
+
+| Endpoint | What it returns |
+| --- | --- |
+| `GET /api/genres?type=movie` | Genre ids and names (`movie` or `tv`) |
+| `GET /api/trending?type=all&window=week` | Trending titles (`all`, `movie`, `tv`; `day` or `week`) |
+| `GET /api/lists/:list` | `popular-movies`, `popular-tv`, `upcoming`, `top-rated` |
+
+TMDb responses are cached in memory for 10 minutes.
+
+## Database
+See [docs/schema.md](docs/schema.md) for the Firestore schema (users, favorites, reviews).
