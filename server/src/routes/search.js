@@ -4,6 +4,14 @@ import { normalizePage } from '../normalize.js';
 
 const router = Router();
 
+// Our simple sort names, mapped to TMDb's sort_by values per media type.
+// TMDb calls the release date field differently for movies and TV.
+const SORTS = {
+  popularity: { movie: 'popularity.desc', tv: 'popularity.desc' },
+  rating: { movie: 'vote_average.desc', tv: 'vote_average.desc' },
+  newest: { movie: 'primary_release_date.desc', tv: 'first_air_date.desc' },
+};
+
 // GET /api/search?q=inception&type=movie&year=2010&page=1
 // type: multi (default, movies + TV), movie, or tv
 router.get('/search', async (req, res) => {
@@ -28,17 +36,18 @@ router.get('/search', async (req, res) => {
   res.json(result);
 });
 
-// GET /api/discover?type=movie&genre=878&year=2014&minRating=8&page=1
+// GET /api/discover?type=movie&genre=878&year=2014&minRating=8&sort=rating&page=1
 // Browse without a search term, filtered by genre, release year and rating.
 router.get('/discover', async (req, res) => {
   const type = req.query.type || 'movie';
   const { genre, year, minRating } = req.query;
+  const sort = req.query.sort || 'popularity';
   const page = req.query.page || 1;
 
   const params = {
     page,
     include_adult: false,
-    sort_by: 'popularity.desc',
+    sort_by: SORTS[sort][type],
     with_genres: genre, // one id, or several separated by commas
   };
 
@@ -49,6 +58,16 @@ router.get('/discover', async (req, res) => {
     params['vote_average.gte'] = minRating;
     // Without a vote floor, a film with two 10/10 votes beats real classics
     params['vote_count.gte'] = 100;
+  }
+
+  // Sorting by rating only makes sense for titles enough people have rated
+  if (sort === 'rating' && !params['vote_count.gte']) params['vote_count.gte'] = 200;
+
+  // "Newest" should mean already released, not announced for 2030
+  if (sort === 'newest') {
+    const today = new Date().toISOString().slice(0, 10);
+    if (type === 'movie') params['primary_release_date.lte'] = today;
+    else params['first_air_date.lte'] = today;
   }
 
   const data = await tmdbGet(`/discover/${type}`, params);
