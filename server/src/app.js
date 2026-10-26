@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import searchRoutes from './routes/search.js';
+import listRoutes from './routes/lists.js';
 
 const app = express();
 
@@ -12,6 +13,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api', searchRoutes);
+app.use('/api', listRoutes);
 
 // Unknown routes
 app.use((req, res) => {

@@ -2,6 +2,8 @@
 // key stays on the server and errors are handled in one place.
 
 const BASE_URL = 'https://api.themoviedb.org/3';
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const cache = new Map();
 
 export class TmdbError extends Error {
   constructor(message, status) {
@@ -26,6 +28,13 @@ export async function tmdbGet(path, params = {}) {
   if (key.startsWith('eyJ')) headers.authorization = `Bearer ${key}`;
   else url.searchParams.set('api_key', key);
 
+  const cacheKey = url.toString();
+  const hit = cache.get(cacheKey);
+  if (hit && hit.expires > Date.now()) {
+    console.log(`cache hit: ${path}`);
+    return hit.data;
+  }
+
   let response;
   try {
     response = await fetch(url, { headers });
@@ -38,5 +47,7 @@ export async function tmdbGet(path, params = {}) {
     if (response.status === 401) throw new TmdbError('TMDb rejected the API key', 500);
     throw new TmdbError(`TMDb request failed (${response.status})`, 502);
   }
-  return response.json();
+  const data = await response.json();
+  cache.set(cacheKey, { data, expires: Date.now() + CACHE_TTL_MS });
+  return data;
 }
