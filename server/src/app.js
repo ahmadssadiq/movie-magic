@@ -3,6 +3,7 @@ import cors from 'cors';
 import searchRoutes from './routes/search.js';
 import listRoutes from './routes/lists.js';
 import detailsRoutes from './routes/details.js';
+import { requireAuth } from './middleware/auth.js';
 
 const app = express();
 
@@ -11,6 +12,13 @@ app.use(express.json());
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
+});
+
+app.get('/api/me', requireAuth, (req, res) => {
+  res.json({
+    uid: req.user.uid,
+    email: req.user.email || null
+  });
 });
 
 app.use('/api', searchRoutes);
