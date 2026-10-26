@@ -13,6 +13,7 @@ movie-magic/
       app.js         Express app and route mounting
       tmdb.js        TMDb API client
       normalize.js   converts TMDb results into our response shapes
+      normalizeDetails.js  builds the details page shape (cast, crew, trailer)
       routes/        one file per group of endpoints
   client/            React frontend (coming in weeks 5-6)
 ```
@@ -82,6 +83,35 @@ Bad input returns `400` with `{ "error": "..." }`.
 | `GET /api/lists/:list` | `popular-movies`, `popular-tv`, `upcoming`, `top-rated` |
 
 TMDb responses are cached in memory for 10 minutes.
+
+## Details endpoint
+
+### `GET /api/title/:type/:id`
+
+Everything for one movie or TV show, from a single TMDb call
+(`append_to_response=credits,videos,similar,reviews`).
+
+| Param | Values |
+| --- | --- |
+| `type` | `movie` or `tv` |
+| `id` | TMDb id, e.g. `27205` (Inception), `1396` (Breaking Bad) |
+
+Returns the same fields as a search result, plus:
+
+```js
+{ genres: [{ id, name }], tagline, status,
+  cast: [{ id, name, character, profilePath }],      // top 12, in billing order
+  crew: [{ id, name, job }],                         // Director, Writer, Screenplay; Creator for TV
+  trailer: { key, name, url } | null,                // first YouTube trailer
+  similar: [ /* search-result items, up to 12 */ ],
+  tmdbReviews: [{ author, content, rating, url }],
+  runtime,                                           // movies, in minutes
+  seasons, episodes }                                // TV only
+```
+
+Trailer embed: `https://www.youtube.com/embed/${trailer.key}`
+
+Unknown id returns `404`; a type other than `movie` or `tv` returns `400`.
 
 ## Database
 See [docs/schema.md](docs/schema.md) for the Firestore schema (users, favorites, reviews).
